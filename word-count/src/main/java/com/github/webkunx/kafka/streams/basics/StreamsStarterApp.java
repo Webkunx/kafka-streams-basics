@@ -6,22 +6,15 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.*;
 
 import java.util.Arrays;
 import java.util.Properties;
 
 public class StreamsStarterApp {
-    public static void main(String[] args) {
 
-        Properties config = new Properties();
-
-        config.setProperty(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        config.setProperty(StreamsConfig.APPLICATION_ID_CONFIG, "word-count-app");
-        config.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        config.setProperty(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
-        config.setProperty(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
-
+    public static Topology createTopology() {
         StreamsBuilder builder = new StreamsBuilder();
 
         KStream<String, String> wordCountInput = builder.stream("word-count-input");
@@ -34,7 +27,21 @@ public class StreamsStarterApp {
                 .count(Named.as("Counts"));
 
         wordCounts.toStream().to("word-count-output");
-        KafkaStreams streams = new KafkaStreams(builder.build(), config);
+        return builder.build();
+    }
+
+    public static void main(String[] args) {
+
+        Properties config = new Properties();
+
+        config.setProperty(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        config.setProperty(StreamsConfig.APPLICATION_ID_CONFIG, "word-count-app");
+        config.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.setProperty(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+        config.setProperty(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+
+        Topology topology = createTopology();
+        KafkaStreams streams = new KafkaStreams(topology, config);
         streams.start();
         System.out.println(streams.toString());
         Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
